@@ -1,0 +1,29 @@
+{
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "ts"
+    ],
+    "rootDir": "../",
+    "testEnvironment": "node",
+    "transform": {
+      "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "testRegex": ".e2e-spec.ts$",
+    "moduleNameMapper": {
+      "^@domain/(.*)$": "<rootDir>/src/domain/$1",
+      "^@infrastructure/(.*)$": "<rootDir>/src/infrastructure/$1",
+      "^@use-cases/(.*)$": "<rootDir>/src/use-cases/$1"
+    },
+    "collectCoverageFrom": [
+      "src/**/*.{js,ts}",
+      "!**/node_modules/**"
+    ],
+    "coverageReporters": [
+      "json",
+      "lcov"
+    ],
+    "moduleDirectories": ["node_modules", "src"],
+    "testTimeout": 30000
+  }
+  

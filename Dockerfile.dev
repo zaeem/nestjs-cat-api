@@ -1,0 +1,21 @@
+FROM ubuntu:latest
+LABEL authors="zaeem"
+
+# Use a Node.js image
+FROM node:21.5.0-alpine3.19
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies
+COPY package.json yarn.lock ./
+RUN yarn install
+
+# Copy project files
+COPY . .
+
+# Expose the port nest uses
+EXPOSE 3000
+
+# Start the development server
+CMD ["yarn", "start:dev-docker"]

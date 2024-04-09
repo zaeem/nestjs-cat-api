@@ -1,0 +1,27 @@
+{
+    "moduleFileExtensions": [
+      "ts",
+      "tsx",
+      "js",
+      "json"
+    ],
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    },
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(ts|tsx|js)$",
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx,tsx,ts}",
+      "!**/node_modules/**",
+      "!**/vendor/**"
+    ],
+    "coverageReporters": [
+      "json",
+      "lcov"
+    ],
+    "moduleNameMapper": {
+      "^@domain/(.*)$": "<rootDir>/domain/$1",
+      "^@infrastructure/(.*)$": "<rootDir>/infrastructure/$1",
+      "^@use-cases/(.*)$": "<rootDir>/use-cases/$1"
+    }
+  }
+  

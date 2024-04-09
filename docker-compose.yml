@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  nestjs-database:
+    container_name: nestjs-pg-db
+    image: postgres:14-alpine
+    ports:
+      - 5432:5432
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=dockerwizard
+      - POSTGRES_PASSWORD=dockerwizard
+      - POSTGRES_DB=nestjs-assignment
+      - DATABASE_DOCKER_HOST=nestjs-docker-database
+    networks:
+      - nestjs_network
+    restart: unless-stopped
+
+
+  nestjs-backend:
+    container_name: nestjs-api
+    depends_on:
+      - nestjs-database
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - 3000:3000
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=development
+    networks:
+      - nestjs_network
+    volumes:
+      - .:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+networks:
+  nestjs_network:
+    driver: bridge
