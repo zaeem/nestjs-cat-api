@@ -32,7 +32,7 @@ The following is an outline of the project's directory structure, highlighting k
 ### Manually
 
 1. Download PostrgeSQL
-2. Create .env file and set values of each property given in .env.sample
+2. Rename .env-sample file to .env and set values of each property (as per your config).
 3. Install dependancy 
 ```bash
   $ yarn install
@@ -49,11 +49,18 @@ The following is an outline of the project's directory structure, highlighting k
 ### Using Docker
 
 1. Install Docker
-2. Execute following commands
+2. Rename .env-sample file to .env and set values of each property.
+3. Change env `DATABASE_HOST` to `nestjs-database`
+4. Execute following commands
 ```bash
   $ docker-compose up
 ```
-3. Run migration
+5. Run migration (in docker shell)
+  - Access the shell first
+```bash
+    $ docker exec -it nestjs-api /bin/sh
+```
+  - Run migration command in the shell
 ```bash
   $ yarn run migration-start
 ```
@@ -66,7 +73,18 @@ Testing is an integral part of our development process. We follow an end-to-end 
   - `cats`: Tests for the cat-related functionalities and routes.
   - `user`: Tests for user authentication and management.
 
+### Manually
 ```bash
 # e2e tests
 $ npm run test:e2e
+```
+
+### Using Docker
+- Access the shell first
+```bash
+    $ docker exec -it nestjs-api /bin/sh
+```
+  - Run tests
+```bash
+  $  npm run test:e2e
 ```
