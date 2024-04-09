@@ -82,7 +82,7 @@ $ npm run test:e2e
 ### Using Docker
 - Access the shell first
 ```bash
-    $ docker exec -it nestjs-api /bin/sh
+  $ docker exec -it nestjs-api /bin/sh
 ```
   - Run tests
 ```bash
