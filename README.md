@@ -22,63 +22,41 @@ The following is an outline of the project's directory structure, highlighting k
   - `strategies`: Strategies define various authentication mechanisms for our application.
 - `infrastructure-usecases-bridge`: Acts as a bridge between our core logic and infrastructure, allowing for decoupling where needed.
 
-## Guards
+## Technology Summary
+1. Framework: NestJS (v10.2.1)
+2. Database: PostgreSQL (v14)
+4. Packages: Passport, PassportJWT, TypeORM, ClassTransformer, ClassValidator, Bcrypt and NestJS dependencies 
 
-The guards in this project are used to protect routes and ensure that only authenticated users with the appropriate roles can access certain functionalities.
+## Run Application Locally
 
-- `JwtAuthGuard`: Ensures that a route is only accessible to authenticated users with a valid JWT.
-- `RolesGuard`: Checks that the authenticated user has the required role to access a particular route.
+### Manually
 
-## Strategies
+1. Download PostrgeSQL
+2. Create .env file and set values of each property given in .env.sample
+3. Install dependancy 
+  - yarn install
+4. Run migration (ensure that postgres is up and running)
+  - yarn run migration-start
+5. Run Server
+  - yarn start
 
-Authentication strategies are crucial for our application's security, defining how authentication is performed.
+### Using Docker
 
-- `LocalStrategy`: Used for standard username and password authentication.
-- `JwtStrategy`: Utilized for JWT token verification post-login.
+1. Install Docker
+2. Execute following commands
+  - docker-compose up
+3. Run migration
+  - yarn run migration-start
 
-## Bridge Module
 
-The `infrastructure-usecases-bridge` module is central to the interaction between our use cases and infrastructure layers. It provides a proxy mechanism (`UsecaseProxy`) which facilitates the use of use case classes within the infrastructure layer, maintaining the separation of concerns as dictated by Clean Architecture.
-
-## Testing
-
+## Test
 Testing is an integral part of our development process. We follow an end-to-end testing approach to ensure that each component works as expected in a real-world scenario.
 
 - `e2e`: Contains our end-to-end tests.
   - `cats`: Tests for the cat-related functionalities and routes.
   - `user`: Tests for user authentication and management.
 
-## Technology Summary
-1. Framework: NestJS, a framework for building efficient and scalable server-side applications. It leverages TypeScript and provides out-of-the-box application architecture which allows developers to maintain scalable and testable code.
-2. Database: PostgreSQL, an open-source relational database that provides robust features to handle complex data workloads and ensures data integrity.
-3. ORM (Object-Relational Mapping): TypeORM, an ORM that can run in Node.js, Browser, Cordova, PhoneGap, Ionic, React Native, NativeScript, and Electron platforms and can be used with TypeScript and JavaScript (ES5, ES6, ES7, ES8). It supports the Active Record and Data Mapper patterns.
-4. Authentication: PassportJS, a middleware for Node.js that simplifies the process of handling authentication. It supports a wide range of strategies including username and password, Facebook, Google, and more.
-
-## Follow the given steps to setup application locally
-
-1. Create .env file and set values of each property given in .env.sample
-2. Install dependancy 
-  - yarn install
-3. Run migration (ensure that postgres is up and running)
-  - yarn run migration-start
-4. Run Server
-  - yarn start
-
-
-## Follow the given step to setup application for production
-
-1. Install Docker
-2. Execute following commands
-  - docker-compose up
-3. Run migration
-  - yarn run migration-start 
-
-
-## Test
-
 ```bash
 # e2e tests
 $ npm run test:e2e
-
 ```
-
