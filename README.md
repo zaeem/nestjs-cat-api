@@ -18,8 +18,12 @@ The following is an outline of the project's directory structure, highlighting k
 
 - `domain`: Contains the entities and use cases which are the high-level business rules of the application.
 - `infrastructure`: Frameworks, drivers, and tools that support the application. The details of the application.
-  - `guards`: Guards are responsible for ensuring that certain conditions are met before a route is accessed.
+  - `guards`: Responsible for ensuring that certain conditions are met before a route is accessed.
   - `strategies`: Strategies define various authentication mechanisms for our application.
+  - `presentation`: Responsible to provide entry point of the application.
+  - `orm`: Responsible to main ORM configurations and database access.
+  - `services`: Responsible to maintain 3rd party packages utilities.
+  - `config`: Resposible to manage and initialise configurations.
 - `infrastructure-usecases-bridge`: Acts as a bridge between our core logic and infrastructure, allowing for decoupling where needed.
 
 ## Technology Summary
