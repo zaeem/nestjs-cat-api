@@ -34,19 +34,29 @@ The following is an outline of the project's directory structure, highlighting k
 1. Download PostrgeSQL
 2. Create .env file and set values of each property given in .env.sample
 3. Install dependancy 
-  - yarn install
+```bash
+  $ yarn install
+```
 4. Run migration (ensure that postgres is up and running)
-  - yarn run migration-start
+```bash
+  $ yarn run migration-start
+```
 5. Run Server
-  - yarn start
+```bash
+  $ yarn start
+```
 
 ### Using Docker
 
 1. Install Docker
 2. Execute following commands
-  - docker-compose up
+```bash
+  $ docker-compose up
+```
 3. Run migration
-  - yarn run migration-start
+```bash
+  $ yarn run migration-start
+```
 
 
 ## Test
