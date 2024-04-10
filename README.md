@@ -80,7 +80,7 @@ Testing is an integral part of our development process. We follow an end-to-end 
 ### Manually
 ```bash
 # e2e tests
-$ npm run test:e2e
+$ yarn run test:e2e
 ```
 
 ### Using Docker
@@ -90,5 +90,5 @@ $ npm run test:e2e
 ```
   - Run tests
 ```bash
-  $  npm run test:e2e
+  $  yarn run test:e2e
 ```
