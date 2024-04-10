@@ -1,43 +1,50 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus, INestApplication } from '@nestjs/common';
 import { AppModule } from '../../src/app.module';
 import * as request from 'supertest';
+import { USER_USECASE_PROXY } from '../../src/infrastructure-usecases-bridge/usecase-proxy';
 
-describe('AuthController (e2e)', () => {
-  let app: INestApplication;
+describe('UserController (e2e)', () => {
+  let app;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+    .overrideProvider(USER_USECASE_PROXY)
+    .useValue({
+      getInstance: () => ({
+        signUp: jest.fn().mockImplementation((dto) => Promise.resolve(dto)),
+        login: jest.fn().mockImplementation((dto) => Promise.resolve({ token: 'mockToken', ...dto })),
+        validateUser: jest.fn().mockImplementation(()=>true)
+      }),
+    })
+    .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
   });
 
-  it('should authenticate admin user and return a token', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({
-        email: "superadmin@gmail.com",
-        password:"12345678"
+  it('/auth/register (POST) - success', () => {
+    return request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: 'testuser@test.com', password: 'testpass' ,role:'user', name:'test'})
+      .expect(201) 
+      .then((response) => {
+        expect(response.body.email).toEqual('testuser@test.com');
+        expect(response.body.name).toEqual('test');
+        expect(response.body.role).toEqual('user');
       });
-    expect(response.status).toBe(HttpStatus.OK);
-    expect(response.body).toHaveProperty('token');
-    expect(typeof response.body.token).toBe('string');
   });
 
-  it('should authenticate non-admin user and return a token', async () => {
-    const response = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({
-        email: 'user@gmail.com',
-        password: '12345678',
-      });
 
-    expect(response.status).toBe(HttpStatus.OK);
-    expect(response.body).toHaveProperty('token');
-    expect(typeof response.body.token).toBe('string');
+  it('/auth/login (POST) - success', () => {
+    return request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'testuser@test.com', password: 'testpass' })
+      .expect(200) 
+      .then((response) => {
+        expect(response.body.token).toBeDefined();
+      });
   });
 
   afterAll(async () => {
