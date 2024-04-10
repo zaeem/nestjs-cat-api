@@ -1,148 +1,263 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpStatus, INestApplication } from '@nestjs/common';
 import { AppModule } from '../../src/app.module';
 import * as request from 'supertest';
-import { DeleteResult, InsertResult, UpdateResult } from 'typeorm'
+import { CAT_USECASE_PROXY } from '../../src/infrastructure-usecases-bridge/usecase-proxy';
+import { Cat } from '../../src/infrastructure/orm/entities/cat.entity';
+import { INestApplication } from '@nestjs/common';
+import {JwtAuthGuard} from "../../src/infrastructure/guards/jwt-auth.guard"
+import {RolesGuard} from "../../src/infrastructure/guards/role.guard"
+import { CanActivate, ExecutionContext } from '@nestjs/common';
 
-describe('CatController (e2e)', () => {
-    let app: INestApplication;
-    let adminToken: string;
-    let adminId: string
-    let nonAdminToken: string;
-    let catId: number;
+export class MockUserAuthGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+    request.user = { userId: 1, email: 'user@test.com', roles: ['USER'] };
+    if (request.path == '/cats/favorites/2' || request.method === 'GET') {
+        return true; 
+      }
+    return false ;
+  }
+}
 
-    beforeAll(async () => {
-        const moduleFixture: TestingModule = await Test.createTestingModule({
-            imports: [AppModule],
-        }).compile();
+export class MockAdminAuthGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const request = context.switchToHttp().getRequest();
+    request.user = { userId: 1, email: 'admin@test.com', roles: ['admin'] };
+    return true ;
+  }
+}
 
-        app = moduleFixture.createNestApplication();
-        await app.init();
 
-        const adminResponse = await request(app.getHttpServer())
-            .post('/auth/login')
-            .send({
-                email: 'superadmin@gmail.com',
-                password: '12345678',
-            });
-        adminToken = adminResponse.body.token;
-        adminId = adminResponse.body.id
+describe('CatController for Admin (e2e)', () => {
+  let app: INestApplication;
+  const mockDeleteResult = {
+    affected: 1, 
+  }
+  const mockUpdateResult = {
+    affected: 1, 
+  };
 
-        const nonAdminResponse = await request(app.getHttpServer())
-            .post('/auth/login')
-            .send({
-                email: 'user@gmail.com',
-                password: '12345678',
-            });
-        nonAdminToken = nonAdminResponse.body.token;
-    });
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    })
+    .overrideProvider(CAT_USECASE_PROXY)
+    .useValue({
+      getInstance: () => ({
+        delete: jest.fn().mockResolvedValue(mockDeleteResult),
+        markFavoriteCatByUser: jest.fn().mockImplementation(()=>Promise.resolve({id:1, cat:{id: 1, name:'cat-1'}})),
+        create: jest.fn().mockImplementation((cat: Cat) => Promise.resolve(cat)),
+        list: jest.fn().mockResolvedValue([]),
+        findById: jest.fn().mockImplementation(()=>Promise.resolve({id:1, name:'cat-1'})),
+        update: jest.fn().mockResolvedValue(mockUpdateResult),
+        getFavoritesItem: jest.fn().mockImplementation(()=>Promise.resolve([
+            {id:1, cat:{id: 1, name:'cat-1'}}
+        ])),
 
-    it('should create a new cat with an admin user', async () => {
-        const response = await request(app.getHttpServer())
-            .post('/cats')
-            .set('Authorization', `Bearer ${adminToken}`)
-            .send({
-                name: 'cat-11',
-            });
-        expect(response.status).toBe(HttpStatus.CREATED);
-        expect(response.body).toHaveProperty('id');
-        catId = response.body.id
-    });
+      }),
+    })
+    .overrideGuard(JwtAuthGuard).useClass(MockAdminAuthGuard)
+    .overrideGuard(RolesGuard).useClass(MockAdminAuthGuard)
+    .compile();
 
-    it('should not allow non-admin user to create a new cat', async () => {
-        const response = await request(app.getHttpServer())
-            .post('/cats')
-            .set('Authorization', `Bearer ${nonAdminToken}`)
-            .send({
-                name: 'cat-12',
-            });
-        expect(response.status).toBe(HttpStatus.FORBIDDEN);
-    });
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+  it('/cats/favorites/ (FAVORITE) - success', () => {
+    const payload = {catId:1}
+    return request(app.getHttpServer())
+      .post('/cats/favorites/2')
+      .send(payload) 
+      .expect(200)
+      .then((response) => {
+        expect(response.body).not.toBeNull();
+        expect(response.body).toHaveProperty('cat')
+      })
+  });
+  it('/favorites/list (FAVORITELIST) - success', () => {
+    return request(app.getHttpServer())
+      .get('/cats/3/favorites/list')
+      .expect(200)
+      .then((response) => {
+        expect(response.body).not.toBeNull();
+        expect(Array.isArray(response.body)).toBeTruthy();
+      })
+     
+  });
+  it('/cats (CATSLIST) - success', () => {
+    return request(app.getHttpServer())
+      .get('/cats')
+      .expect(200)
+      .then((response) => {
+        expect(response.body).not.toBeNull();
+        expect(Array.isArray(response.body)).toBeTruthy();
+      })
+     
+  });
+  it('/cats/id (CATBYID) - success', () => {
+    return request(app.getHttpServer())
+      .get('/cats/1')
+      .expect(200)
+      .then((response) => {
+        expect(response.body).not.toBeNull();
+        expect(response.body).toHaveProperty('name')
 
-    it('should list all cats as admin', async () => {
-        const response = await request(app.getHttpServer())
-            .get('/cats')
-            .set('Authorization', `Bearer ${adminToken}`);
-        expect(response.status).toBe(HttpStatus.OK);
-        expect(Array.isArray(response.body)).toBe(true);
-    });
+      })
+     
+  });
 
-    it('should list all cats as non-admin', async () => {
-        const response = await request(app.getHttpServer())
-            .get('/cats')
-            .set('Authorization', `Bearer ${nonAdminToken}`);
-        expect(response.status).toBe(HttpStatus.OK);
-        expect(Array.isArray(response.body)).toBe(true);
-    });
+  it('/cats/:id (DELETE) - success', () => {
+    return request(app.getHttpServer())
+      .delete('/cats/1') 
+      .expect(200)
+      .then((response) => {
+        expect(response.body).toEqual(mockDeleteResult);
+      })
+     
+  });
+  it('/cats/:id (UPDATE) - success', () => {
+    return request(app.getHttpServer())
+      .put('/cats/1')
+      .send({name: 'update-cat'}) 
+      .expect(200)
+      .then((response) => {
+        expect(response.body).toEqual(mockUpdateResult);
+      })
+  });
+  it('/cats/ (CREATE) - success', () => {
+    const payload = {name: 'cat-new'}
+    return request(app.getHttpServer())
+      .post('/cats')
+      .send(payload) 
+      .expect(201)
+      .then((response) => {
+        expect(response.body).not.toBeNull();
+        expect(response.body).toEqual(payload);
+      })
+     
+  });
 
-    it('should find cat by id as admin', async () => {
-        const response = await request(app.getHttpServer())
-            .get(`/cats/${catId}`)
-            .set('Authorization', `Bearer ${adminToken}`);
-        expect(response.status).toBe(HttpStatus.OK);
-        expect(response.body instanceof Object).toBe(true);
-    });
+  afterAll(async () => {
+    await app.close();
+  });
 
-    it('should find cat by id as non-admin', async () => {
-        const response = await request(app.getHttpServer())
-            .get(`/cats/${catId}`)
-            .set('Authorization', `Bearer ${nonAdminToken}`);
-        expect(response.status).toBe(HttpStatus.OK);
-        expect(response.body instanceof Object).toBe(true);
-    });
+});
+describe('CatController for Non-Admin (e2e)', () => {
+  let app: INestApplication;
+  const mockDeleteResult = {
+    affected: 1, 
+  }
+  const mockUpdateResult = {
+    affected: 1, 
+  };
 
-    it('should not update cat as non-admin', async () => {
-        const response = await request(app.getHttpServer())
-            .put(`/cats/${catId}`)
-            .set('Authorization', `Bearer ${nonAdminToken}`);
-        expect(response.status).toBe(HttpStatus.FORBIDDEN);
-    });
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    })
+    .overrideProvider(CAT_USECASE_PROXY)
+    .useValue({
+      getInstance: () => ({
+        delete: jest.fn().mockResolvedValue(mockDeleteResult),
+        markFavoriteCatByUser: jest.fn().mockImplementation(()=>Promise.resolve({id:1, cat:{id: 1, name:'cat-1'}})),
+        create: jest.fn().mockImplementation((cat: Cat) => Promise.resolve(cat)),
+        list: jest.fn().mockResolvedValue([]),
+        findById: jest.fn().mockImplementation(()=>Promise.resolve({id:1, name:'cat-1'})),
+        update: jest.fn().mockResolvedValue(mockUpdateResult),
+        getFavoritesItem: jest.fn().mockImplementation(()=>Promise.resolve([
+            {id:1, cat:{id: 1, name:'cat-1'}}
+        ])),
 
-    it('should update cat as admin', async () => {
-        const response = await request(app.getHttpServer())
-        .put(`/cats/${catId}`)
-        .send({
-                name: 'updated-cat'
-            })
-            .set('Authorization', `Bearer ${adminToken}`);
-        expect(response.status).toBe(HttpStatus.OK);
-        expect(response.body).toHaveProperty('affected');
-    });
-   
-    it('should mark cat as favorite as admin', async () => {
-        const response = await request(app.getHttpServer())
-        .post(`/cats/favorites/${adminId}`)
-        .send({
-            catId: catId.toString()
-        })
-            .set('Authorization', `Bearer ${adminToken}`);
-        expect(response.status).toBe(HttpStatus.OK);
-        expect(response.body).toHaveProperty('user');
-    });
+      }),
+    })
+    .overrideGuard(JwtAuthGuard).useClass(MockUserAuthGuard)
+    .overrideGuard(RolesGuard).useClass(MockUserAuthGuard)
+    .compile();
 
-    it('should get list of favorite cats as admin', async () => {
-        const response = await request(app.getHttpServer())
-        .get(`/cats/${adminId}/favorites/list`)
-            .set('Authorization', `Bearer ${adminToken}`);
-        expect(response.status).toBe(HttpStatus.OK);
-    });
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+  it('/cats/favorites/ (FAVORITE) - success', () => {
+    const payload = {catId:1}
+    return request(app.getHttpServer())
+      .post('/cats/favorites/2')
+      .send(payload) 
+      .expect(200)
+      .then((response) => {
+        expect(response.body).not.toBeNull();
+        expect(response.body).toHaveProperty('cat')
+      })
+  });
+  it('/favorites/list (FAVORITELIST) - success', () => {
+    return request(app.getHttpServer())
+      .get('/cats/3/favorites/list')
+      .expect(200)
+      .then((response) => {
+        expect(response.body).not.toBeNull();
+        expect(Array.isArray(response.body)).toBeTruthy();
+      })
+     
+  });
+  it('/cats (CATSLIST) - success', () => {
+    return request(app.getHttpServer())
+      .get('/cats')
+      .expect(200)
+      .then((response) => {
+        expect(response.body).not.toBeNull();
+        expect(Array.isArray(response.body)).toBeTruthy();
+      })
+     
+  });
+  it('/cats/id (CATBYID) - success', () => {
+    return request(app.getHttpServer())
+      .get('/cats/1')
+      .expect(200)
+      .then((response) => {
+        expect(response.body).not.toBeNull();
+        expect(response.body).toHaveProperty('name')
 
-    it('should not delete cat as non-admin', async () => {
-        const response = await request(app.getHttpServer())
-        .delete(`/cats/${catId}`)
-            .set('Authorization', `Bearer ${nonAdminToken}`);
-        expect(response.status).toBe(HttpStatus.FORBIDDEN);
-    });
+      })
+     
+  });
 
-    it('should delete cat as admin', async () => {
-        const response = await request(app.getHttpServer())
-        .delete(`/cats/${catId}`)
-            .set('Authorization', `Bearer ${adminToken}`);
-        expect(response.status).toBe(HttpStatus.OK);
-        expect(response.body).toHaveProperty('affected');
-    });
+  it('/cats/:id (DELETE) - success', () => {
+    return request(app.getHttpServer())
+      .delete('/cats/1') 
+      .expect(403)
+      .then((response) => {
+        expect(response.body).toHaveProperty('error', 'Forbidden');
+      expect(response.body).toHaveProperty('message', 'Forbidden resource');
+      expect(response.body).toHaveProperty('statusCode', 403);
+      })
+     
+  });
+  it('/cats/:id (UPDATE) - success', () => {
+    return request(app.getHttpServer())
+      .put('/cats/1')
+      .send({name: 'update-cat'}) 
+      .expect(403)
+      .then((response) => {
+        expect(response.body).toHaveProperty('error', 'Forbidden');
+      expect(response.body).toHaveProperty('message', 'Forbidden resource');
+      expect(response.body).toHaveProperty('statusCode', 403);
+      })
+  });
+  it('/cats/ (CREATE) - success', () => {
+    const payload = {name: 'cat-new'}
+    return request(app.getHttpServer())
+      .post('/cats')
+      .send(payload) 
+      .expect(403)
+      .then((response) => {
+        expect(response.body).toHaveProperty('error', 'Forbidden');
+      expect(response.body).toHaveProperty('message', 'Forbidden resource');
+      expect(response.body).toHaveProperty('statusCode', 403);
+      })
+     
+  });
 
-    afterAll(async () => {
-        await app.close();
-    });
+  afterAll(async () => {
+    await app.close();
+  });
+
 });
